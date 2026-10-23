@@ -1,0 +1,163 @@
+// backend/prisma/schema.prisma
+// Urbanización Mirador de la Cascada
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- ENUMS ----------
+
+enum Rol {
+  ADMIN
+  PROPIETARIO
+}
+
+enum EstadoPropietario {
+  ACTIVO
+  MOROSO
+  INACTIVO
+}
+
+enum EstadoCuota {
+  PENDIENTE
+  PAGADA
+  VENCIDA
+}
+
+enum EstadoPago {
+  EN_REVISION
+  APROBADO
+  RECHAZADO
+}
+
+enum MetodoPago {
+  TRANSFERENCIA
+  CONSIGNACION
+  EFECTIVO
+  OTRO
+}
+
+enum EstadoVisita {
+  PROGRAMADA
+  INGRESO
+  SALIO
+  CANCELADA
+}
+
+enum CategoriaComunicado {
+  GENERAL
+  URGENTE
+  MANTENIMIENTO
+  REUNION
+  NORMAS
+}
+
+// ---------- MODELOS ----------
+
+model Usuario {
+  id         Int      @id @default(autoincrement())
+  nombre     String
+  correo     String   @unique
+  contrasena String   // se guarda con hash (bcrypt)
+  rol        Rol      @default(PROPIETARIO)
+  activo     Boolean  @default(true)
+  creadoEn   DateTime @default(now())
+
+  propietario  Propietario?
+  comunicados  Comunicado[]
+  mensajes     Mensaje[]
+  pagosValidados Pago[] @relation("ValidadoPor")
+}
+
+model Propietario {
+  id        Int               @id @default(autoincrement())
+  usuarioId Int               @unique
+  usuario   Usuario           @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  documento String            @unique
+  telefono  String?
+  casaLote  String            @unique // ej: "Manzana B - Casa 12"
+  estado    EstadoPropietario @default(ACTIVO)
+
+  cuotas     Cuota[]
+  visitantes Visitante[]
+  mensajes   Mensaje[]
+}
+
+model Cuota {
+  id               Int         @id @default(autoincrement())
+  propietarioId    Int
+  propietario      Propietario @relation(fields: [propietarioId], references: [id], onDelete: Cascade)
+  concepto         String      @default("Cuota de administración")
+  mes              Int         // 1 - 12
+  anio             Int
+  valor            Decimal     @db.Decimal(12, 2)
+  fechaVencimiento DateTime
+  estado           EstadoCuota @default(PENDIENTE)
+
+  pagos Pago[]
+
+  @@unique([propietarioId, mes, anio])
+}
+
+model Pago {
+  id             Int        @id @default(autoincrement())
+  cuotaId        Int
+  cuota          Cuota      @relation(fields: [cuotaId], references: [id], onDelete: Cascade)
+  valor          Decimal    @db.Decimal(12, 2)
+  fechaPago      DateTime   @default(now())
+  metodo         MetodoPago
+  comprobanteUrl String?
+  estado         EstadoPago @default(EN_REVISION)
+  observacion    String?
+  validadoPorId  Int?
+  validadoPor    Usuario?   @relation("ValidadoPor", fields: [validadoPorId], references: [id])
+  validadoEn     DateTime?
+}
+
+model Visitante {
+  id            Int          @id @default(autoincrement())
+  propietarioId Int
+  propietario   Propietario  @relation(fields: [propietarioId], references: [id], onDelete: Cascade)
+  nombre        String
+  documento     String
+  placa         String?
+  fechaVisita   DateTime
+  motivo        String?
+  estado        EstadoVisita @default(PROGRAMADA)
+  codigoQr      String       @unique // token que se convierte en QR
+  horaIngreso   DateTime?
+  horaSalida    DateTime?
+  creadoEn      DateTime     @default(now())
+}
+
+model Comunicado {
+  id        Int                 @id @default(autoincrement())
+  adminId   Int
+  admin     Usuario             @relation(fields: [adminId], references: [id])
+  titulo    String
+  contenido String
+  categoria CategoriaComunicado @default(GENERAL)
+  imagenUrl String?
+  fijado    Boolean             @default(false)
+  creadoEn  DateTime            @default(now())
+}
+
+// Chat: cada propietario tiene UNA conversación con la administración.
+// "propietarioId" identifica la conversación; "emisorId" quién escribió.
+model Mensaje {
+  id            Int         @id @default(autoincrement())
+  propietarioId Int
+  propietario   Propietario @relation(fields: [propietarioId], references: [id], onDelete: Cascade)
+  emisorId      Int
+  emisor        Usuario     @relation(fields: [emisorId], references: [id])
+  contenido     String
+  leido         Boolean     @default(false)
+  creadoEn      DateTime    @default(now())
+
+  @@index([propietarioId, creadoEn])
+}
