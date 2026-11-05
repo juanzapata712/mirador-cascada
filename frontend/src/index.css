@@ -1,1 +1,47 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+
+  /* Animaciones usadas por los avisos, diálogos y el login */
+  --animate-aparecer: aparecer 0.2s ease-out both;
+  --animate-subir: subir 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-toast: entrar-toast 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-barra: barra-toast linear forwards;
+  --animate-trazo: trazo 0.5s ease-out 0.2s forwards;
+  --animate-flotar: flotar 9s ease-in-out infinite;
+  --animate-flotar-lento: flotar 14s ease-in-out infinite reverse;
+
+  @keyframes aparecer {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes subir {
+    from { opacity: 0; transform: translateY(16px) scale(0.98); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes entrar-toast {
+    from { opacity: 0; transform: translateX(28px) scale(0.96); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes barra-toast {
+    from { width: 100%; }
+    to { width: 0%; }
+  }
+  @keyframes trazo {
+    to { stroke-dashoffset: 0; }
+  }
+  @keyframes flotar {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(26px, -32px) scale(1.08); }
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors duration-300;
+  }
+}

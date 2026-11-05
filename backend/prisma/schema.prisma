@@ -15,6 +15,7 @@ datasource db {
 enum Rol {
   ADMIN
   PROPIETARIO
+  PORTERO
 }
 
 enum EstadoPropietario {
@@ -66,9 +67,11 @@ model Usuario {
   contrasena String   // se guarda con hash (bcrypt)
   rol        Rol      @default(PROPIETARIO)
   activo     Boolean  @default(true)
+  fotoUrl    String?  
   creadoEn   DateTime @default(now())
 
   propietario  Propietario?
+     
   comunicados  Comunicado[]
   mensajes     Mensaje[]
   pagosValidados Pago[] @relation("ValidadoPor")
